@@ -1,19 +1,17 @@
 from checkPlate import check_plate
 
-# Get both text results and structured data
-results, data = check_plate("NDJ8975")
+plate_number = input("Enter plate number: ")
+results, data = check_plate(plate_number)
+print("\nTo na yung sa test.py")
 
-# Print the formatted results
-for line in results:
-    print(line)
-    
-for content in data:
-    print(content{1})
+# print buong text result
+# for line in results:
+#     print(line)
 
-# # Use the structured data
-# print(f"This vehicle was released to: {data['released_to']}")
-# print(f"Release date: {data['date_released']}")
+# print yung values lang
+values = list(data.values())
+for value in values:
+    print(value)
 
-# # Or use the old way (just gets text results)
-# from checkPlate import checkPlate
-# results = checkPlate("NDJ8975")
+# Alternatively, you can do it in one line:
+# values = [value for value in data.values()]
