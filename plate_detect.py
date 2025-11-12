@@ -5,54 +5,56 @@ import matplotlib.pyplot as plt # For debugging and visualization in python note
 
 # --- Loading the image --- #
 def load_image(image_path):
-    """Loads an image from the specified path"""
+    """function to load an image"""
     image = cv2.imread(image_path)
     return image
 
 # --- Preprocessing the image --- #
 def preprocess_image(image):
-    """Converts to grayscale and applies a bilateral filter"""
+    """converts to grayscale and applies a bilateral filter"""
+    # bilateral filter reduces noise while keeping edges sharp
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     bfilter = cv2.bilateralFilter(gray, 11, 17, 17) 
     return bfilter
 
 # --- Image pyramid --- #
 def pyramid(image, scale=1.5, min_size=(20, 20)):
-    """
-    Yields images at different scales
-    Each step reduces the image size by the given scale factor
-    Stops when the image is smaller than min_size
-    """
-    yield image  # Yield the original image
+    """this is just to generate the image pyramid"""
+    yield image  # get the original image first
 
     while True:
-        # Calculate new dimensions
+        # this will compute the new dimensions of the image
         new_width = int(image.shape[1] / scale)
         new_height = int(image.shape[0] / scale)
 
-        # Stop if the image is too small
+        # this is basically stopping the function if the image is too small
         if new_width < min_size[0] or new_height < min_size[1]:
             break
 
-        # Resize and yield the scaled image
+        # this will resize and get the scaled image
         image = cv2.resize(image, (new_width, new_height), interpolation=cv2.INTER_AREA)
-        yield image
+        yield image # get the next image in the pyramid
 
 
 # --- Finding the license plate contour --- #
 def find_plate_contour(processed_image):
-    """Finds the 4-point contour of the license plate."""
+    """this function finds the contour of the license plate since plates are rectangular in shape"""
     try:
-        # Apply Gaussian blur to reduce noise
+        # apply gaussian blur to reduce noise and then canny edge detection to find edges
         blurred = cv2.GaussianBlur(processed_image, (7, 7), 0)
         edged = cv2.Canny(blurred, 50, 200)
+        
+        """ 
+        findContours basically detects boundary points of shapes in the image
+        and only keeps the 10 biggest contours which are likely to be the license plate
+        """
         contours, _ = cv2.findContours(edged.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv2.contourArea, reverse=True)[:10]
 
         plate_contour = None
         for c in contours:
             """
-            This helps identify shapes with 4 sides
+            this helps identify shapes with 4 sides
             since license plates are rectangular
             """
             perimeter = cv2.arcLength(c, True)
@@ -62,7 +64,7 @@ def find_plate_contour(processed_image):
                 (x, y, w, h) = cv2.boundingRect(approx)
                 aspect_ratio = float(w) / h
 
-                # Tune as needed but these values work for Philippine plates
+                # change as needed but these values work for Philippine plates
                 if 1.5 < aspect_ratio < 4.5 and w > 30 and h > 15:
                     plate_contour = approx
                     break
@@ -74,24 +76,27 @@ def find_plate_contour(processed_image):
     
 # --- Cropping the license plate from the image --- #
 def crop_plate(image, plate_contour, plate_type="car"):
-    """Crops and warps the 4-point contour to a flat, top-down image. Supports car and motorcycle plate sizes."""
+    """crops and straightens the 4-point contour to a flat, top-down image. Supports car and motorcycle plate sizes"""
     try:
-        # This is needed to ensure the points are in the correct order before warping
+        # this is needed to ensure the points are in the correct order before straightening
+        """
+        credits to the following github repository for this part:
+        https://github.com/snaily16/perspective_transformation/tree/e171b7dd69afe3f3fffd64a2ee77f2afb404127d/perspective_transform.py
+        """
         pts = plate_contour.reshape(4, 2)
         rect = np.zeros((4, 2), dtype="float32")
 
         s = pts.sum(axis=1)
-        rect[0] = pts[np.argmin(s)] # Top-left
-        rect[2] = pts[np.argmax(s)] # Bottom-right
+        rect[0] = pts[np.argmin(s)] # top-left
+        rect[2] = pts[np.argmax(s)] # bottom-right
 
         diff = np.diff(pts, axis=1)
-        rect[1] = pts[np.argmin(diff)] # Top-right
-        rect[3] = pts[np.argmax(diff)] # Bottom-left
+        rect[1] = pts[np.argmin(diff)] # top-right
+        rect[3] = pts[np.argmax(diff)] # bottom-left
 
         """
-        Philippine License Plate Sizes:
-        For car plates, use 390x140
-        For motorcycle plates, use 235x135
+        Philippine License Plate Sizes (based on searching online):
+        car plates use 390x140 while motorcycle plates use 235x135
         """        
         if plate_type == "motorcycle":
             target_w = 235
@@ -106,6 +111,10 @@ def crop_plate(image, plate_contour, plate_type="car"):
             [target_w - 1, target_h - 1],
             [0, target_h - 1]], dtype="float32")
 
+        """
+        getPerspectiveTransform and warpPerspective are the functions that
+        straighten the plate by applying a perspective transformation
+        """
         M = cv2.getPerspectiveTransform(rect, dst)
         cropped = cv2.warpPerspective(image, M, (target_w, target_h))
 
@@ -118,9 +127,7 @@ def crop_plate(image, plate_contour, plate_type="car"):
     
 # --- Loading the character templates for matching --- #
 def load_templates(template_directory="templates"):
-    """
-    Loads all templates from a directory into a dictionary.
-    """
+    """loads all templates from a directory into a dictionary"""
     templates = {}
     if not os.path.exists(template_directory):
         print(f"Error: Template directory not found at {template_directory}")
@@ -135,12 +142,13 @@ def load_templates(template_directory="templates"):
             
             if template_img is None: 
                 continue
-            # Use THRESH_BINARY to match the segmented characters (white on black)
+            
+            # use THRESH_BINARY to match the segmented characters (white on black)
             _, template_thresh = cv2.threshold(template_img, 127, 255, cv2.THRESH_BINARY)
             
-            # CRITICAL: Tightly crop the template to remove padding/whitespace
+            # tightly crop the template to remove padding/whitespace
             """
-            If not cropped, template matching may not work well due to extra borders
+            if not cropped, template matching may not work well due to extra borders
             since the segmented characters will be tightly cropped
             """
             coords = cv2.findNonZero(template_thresh)
@@ -155,11 +163,15 @@ def load_templates(template_directory="templates"):
     return templates
 
 # --- Segmenting characters from the license plate --- #
-def segment_characters(warped_plate):
-    """Finds, deskews, and sorts character contours."""
+def segment_characters(straightened_plate):
+    """finds, straigthens, and sorts character contours"""
     try:
-        # Threshold the plate image
-        thresh = cv2.threshold(warped_plate, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+        # threshold the plate image
+        """
+        we used otsu's thresholding to get a binary image for better contour detection
+        since the characters are usually darker on a lighter background
+        """
+        thresh = cv2.threshold(straightened_plate, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
         contours, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
         character_data = []
@@ -171,7 +183,7 @@ def segment_characters(warped_plate):
                 box = cv2.boxPoints(rect)
                 box = np.float32(box)
 
-                # Order points: top-left, top-right, bottom-right, bottom-left
+                # order points: top-left, top-right, bottom-right, bottom-left
                 s = box.sum(axis=1)
                 diff = np.diff(box, axis=1)
                 ordered_pts = np.array([
@@ -181,7 +193,7 @@ def segment_characters(warped_plate):
                     box[np.argmax(diff)]
                 ], dtype="float32")
 
-                # Standard character size same as templates
+                # standardize character size to be same as templates
                 target_w, target_h = 40, 80
                 dst = np.array([
                     [0, 0],
@@ -197,10 +209,10 @@ def segment_characters(warped_plate):
         if not character_data:
             return None, None, None
 
-        # Sort by x-coordinate
+        # sort by x-coordinate
         character_data.sort(key=lambda item: item[0])
         sorted_characters = [img for _, img in character_data]
-        sorted_rois = [None] * len(sorted_characters)  # Placeholder if ROIs needed
+        sorted_rois = [None] * len(sorted_characters)  # placeholder if ROIs needed, when removed, the program breaks :>
 
         return sorted_characters, sorted_rois, thresh
 
@@ -210,7 +222,7 @@ def segment_characters(warped_plate):
 
 # --- Recognizing characters using template matching --- #
 def recognize_characters_template_matching(character_images, templates):
-    """Identifies characters using cv2.matchTemplate."""
+    """identifies characters using cv2.matchTemplate."""
     if not templates:
         return "Template DB not loaded"
     if not character_images:
@@ -218,7 +230,7 @@ def recognize_characters_template_matching(character_images, templates):
 
     plate_text = ""
     
-    # Same size for matching
+    # standardized size for matching
     TARGET_W = 40 
     TARGET_H = 80 
 
@@ -226,21 +238,21 @@ def recognize_characters_template_matching(character_images, templates):
         best_match_score = -1
         best_match_char = "?"
 
-        # Resize character to standard size
+        # resize character to standard size
         char_resized = cv2.resize(char_img, (TARGET_W, TARGET_H), interpolation=cv2.INTER_AREA)
 
         for char_name, template in templates.items():
-            # Resize template to standard size
+            # resize template to standard size
             template_resized = cv2.resize(template, (TARGET_W, TARGET_H), interpolation=cv2.INTER_AREA)
 
-            # Perform template matching and get the best match score
+            # perform template matching and get the best match score
             result = cv2.matchTemplate(char_resized, template_resized, cv2.TM_CCOEFF_NORMED)
             _, max_val, _, _ = cv2.minMaxLoc(result)
             if max_val > best_match_score:
                 best_match_score = max_val
                 best_match_char = char_name
 
-        # Confidence threshold for accepting a match (tune as needed)
+        # confidence threshold for accepting a match (change as needed)
         if best_match_score > 0.4: 
             plate_text += best_match_char
         else:
@@ -275,9 +287,9 @@ def recognize_license_plate(image_path, template_directory="templates"):
     recognized_text = recognize_characters_template_matching(segmented_chars, templates)
     return recognized_text
 
-# --- Stanadalone execution --- #
+# --- For running the program as is --- #
 if __name__ == "__main__":
-    image_path = "test_images/img2.jpg"  # Change to your test image path
-    template_directory = "templates"      # Change to your templates directory
+    image_path = "test_images/img2.jpg" # change to actual test image path
+    template_directory = "templates" # change to where templates directory is saved
     result = recognize_license_plate(image_path, template_directory)
     print(f"Recognized License Plate: {result}")
