@@ -70,10 +70,15 @@ def check_plate(plate_number: str) -> tuple[list[str], dict]:
         # results based sa list element sa html 
         items = driver.find_elements(By.CSS_SELECTOR, "#result li")
         print(f"Found {len(items)} results")
+<<<<<<< Updated upstream
         
         
         # iterate through the detecte list items
         
+=======
+    
+        # iproseso mo tropa
+>>>>>>> Stashed changes
         for item in items:
             text = item.text.strip()
             print({text})
