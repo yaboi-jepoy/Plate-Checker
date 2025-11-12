@@ -22,14 +22,16 @@ def check_plate(plate_number: str) -> tuple[list[str], dict]:
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
     
-    # init driver
+    # initialize driver
     driver = webdriver.Chrome(options=options)
     
-    # try-except para iwas crash    
+    # try-except for crash prevention
     try:
+        # link to LTO site
         driver.get("https://www.ltoncr.com/brand-new-motor-vehicle-and-motorcycle/")
         
-        # uhm sabi sa stackoverflow gumamit raw ng iframe
+        # since the relevant section is embedded inside the website
+        # we usde iframes to trigger and "wait" for it
         print("debug: Looking for iframe...")
         try:
             iframe = WebDriverWait(driver, 10).until(
@@ -43,6 +45,7 @@ def check_plate(plate_number: str) -> tuple[list[str], dict]:
         
         # find the textbox
         # search_text siya sa html
+        # then input the plate number
         input_box = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, "#search_text"))
         )
@@ -64,23 +67,27 @@ def check_plate(plate_number: str) -> tuple[list[str], dict]:
         # i-aadjust ata to based sa internet speed
         time.sleep(1.5)
         
-        # results based sa element sa html 
+        # results based sa list element sa html 
         items = driver.find_elements(By.CSS_SELECTOR, "#result li")
         print(f"Found {len(items)} results")
         
         
-        # iproseso mo tropa
+        # iterate through the detecte list items
+        
         for item in items:
             text = item.text.strip()
             print({text})
             if ":" in text:
+                # split the text through colon
                 label, value = map(str.strip, text.split(":", 1))
+                # then store to a label-value "results" list
                 results.append(f"{label}: {value}")
                 
                 # store in dict
                 key = label.lower().replace(" ", "_")
                 if key in data:
                     data[key] = value
+            # just append if no :
             else:
                 results.append(text)
                 
@@ -89,12 +96,14 @@ def check_plate(plate_number: str) -> tuple[list[str], dict]:
     finally:
         driver.quit()
     
+    # results is for human-readable format
+    # data is the "programmatically readable" format
     return results, data
 
 # if irrun galing sa terminal
-if __name__ == "__main__":
-    plate = input("Enter plate number: ")
-    results, data = check_plate(plate)
+# if __name__ == "__main__":
+#     plate = input("Enter plate number: ")
+#     results, data = check_plate(plate)
     
     # print("\nResults:")
     # for result in results:
