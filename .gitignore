@@ -1,3 +1,4 @@
 site*
 checkPlate_copy.py
 __pycache__/
+.venv/
