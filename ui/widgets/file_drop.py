@@ -18,20 +18,21 @@ class FileDrop(QWidget):
                 border-width: 2px;
                 border-style: dashed;
                 border-radius: 15px;
-                background-color: #D9D9D9;
+                background-color: #FAFAFA;
             """
         )
-        self.setFixedSize(820, 420)
+        self.setMinimumSize(450, 300)
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         main_layout = QVBoxLayout(self)
 
         # label
         self.label = QLabel("Drag and drop files here", self)
-        self.label.setFixedSize(700, 400)
+        self.label.setFixedSize(450, 300)
+        self.label.setWordWrap(True)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setStyleSheet(
             """
-                font-size: 18px;
+                font-size: 13px;
             """
         )
         main_layout.addWidget(self.label, alignment=Qt.AlignmentFlag.AlignCenter)

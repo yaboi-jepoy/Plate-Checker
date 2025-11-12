@@ -14,7 +14,7 @@ class Home(QWidget):
     proceed = pyqtSignal(list)
 
     def home_ui(self):
-        # layout - center everything
+        # home layout
         home_layout = QVBoxLayout()
         home_layout.setContentsMargins(40, 40, 40, 40)
         home_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -36,16 +36,7 @@ class Home(QWidget):
                 color: #333333;
             """
         )
-
-        # button styling
-        button_styling = """
-            padding: 12px 18px;
-            font-size: 16px;
-            font-weight: bold;
-            border-radius: 8px;
-            color: white;
-        """
-
+        
         # upload button
         buttons_layout = QHBoxLayout()
         buttons_layout.setContentsMargins(0, 16, 0, 0)
@@ -53,13 +44,43 @@ class Home(QWidget):
 
         self.upload_btn = QPushButton("Upload Image")
         self.upload_btn.setMinimumSize(250, 48)
-        self.upload_btn.setStyleSheet(button_styling + "background-color: #64B5F6; color: white;")
+        self.upload_btn.setStyleSheet(
+            """
+                QPushButton { 
+                    padding: 12px 18px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    color: white;
+                    background-color: #42A5F5;
+                    color: white;
+                }
+                QPushButton:hover {
+                    background-color: #1E88E5;
+                }
+            """
+        )
         self.upload_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
         # clear button
         self.clear_btn = QPushButton("Clear")
         self.clear_btn.setMinimumSize(250, 48)
-        self.clear_btn.setStyleSheet(button_styling + "background-color: #E57373; color: white;")
+        self.clear_btn.setStyleSheet(
+            """
+                QPushButton { 
+                    padding: 12px 18px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    color: white;
+                    background-color: #EF5350;
+                    color: white;
+                }
+                QPushButton:hover {
+                    background-color: #E53935;
+                }
+            """
+        )
         self.clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
 
         buttons_layout.addWidget(self.upload_btn, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -76,10 +97,24 @@ class Home(QWidget):
         # proceed button
         self.proceed_btn = QPushButton("Proceed")
         self.proceed_btn.setContentsMargins(0, 16, 0, 0)
-        self.proceed_btn.setStyleSheet(button_styling + "background-color: #81C784; color: white;")
-        self.proceed_btn.setMinimumSize(250, 48)
+        self.proceed_btn.setStyleSheet(
+            """
+                QPushButton { 
+                    padding: 12px 18px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border-radius: 8px;
+                    color: white;
+                    background-color: #66BB6A;
+                    color: white;
+                }
+                QPushButton:hover {
+                    background-color: #43A047;
+                }
+            """
+        )
         self.proceed_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.proceed_btn.setEnabled(False)
+        self.proceed_btn.setMinimumSize(250, 48)
 
         # connect button events
         self.upload_btn.clicked.connect(self.on_upload)

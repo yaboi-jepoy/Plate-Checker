@@ -14,7 +14,7 @@ def preprocess_image(image):
     """converts to grayscale and applies a bilateral filter"""
     # bilateral filter reduces noise while keeping edges sharp
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    bfilter = cv2.bilateralFilter(gray, 11, 17, 17) 
+    bfilter = cv2.bilateralFilter(gray, 11, 17, 17)
     return bfilter
 
 # --- Image pyramid --- #
